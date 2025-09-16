@@ -1,6 +1,6 @@
 ---
-title: "DSA2101 Group Project"
-author: "WeRFamily"
+title: "IMO Performance Analysis"
+author: "Nadia Ng"
 date: "`r Sys.Date()`"
 output: html_document
 ---
@@ -268,11 +268,8 @@ Finally, we examined how performance on specific problems affects rankings. A fa
 Our analysis reveals two key insights: contestant experience demonstrates no significant relationship with national IMO performance, while superior performance on the most difficult problems (P3 and P6) emerges as the primary differentiator for top-ranked countries. These findings provide important strategic guidance for competition preparation. However, we must emphasize that potentially critical factors, in particular, training methodologies, educational backgrounds, and national mathematics programs were not captured in our dataset at all. This represents a fundamental data limitation rather than simply an unexamined aspect of our analysis. Future research would need to first collect this missing data before investigating how these structural factors contribute to the sustained excellence demonstrated by the top-performing countries identified in Plot 1. Such additional research could provide a more complete understanding of the institutional and cultural foundations of mathematical achievement at the highest levels.
 
 
-## Teamwork
-Our group of five collaborated closely across different stages of the project. Hanqi, Jianxiang, and Xinyu began by working on the introduction, data cleaning, and summary, and also developed the first visualization plot to highlight the overall trend in the data.
-Building on this foundation, Nadia created plot 2 with the accompanying discussion analysis, and Yunjin created plot 3 and the accompanying discussion analysis. Once these components were completed, Hanqi, Jianxiang, and Xinyu refined the aesthetics and formatting of the plots to ensure visual consistency and clarity.
-The discussion section benefited from full team collaboration, with all members contributing to achieve coherent narrative flow. In the final stage, Yunjin and Nadia synthesized and edited all components into a unified, polished report. This approach allowed us to leverage individual strengths while maintaining consistency across all sections of the project.
 
 
 ## Reference
 International Mathematical Olympiad. (2024). *International Mathematical Olympiad (IMO) data* [Data set]. TidyTuesday. https://github.com/rfordatascience/tidytuesday/blob/main/data/2024/2024-09-24/readme.md
+
