@@ -1,0 +1,278 @@
+---
+title: "DSA2101 Group Project"
+author: "WeRFamily"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+# Global options for the RMarkdown document
+knitr::opts_chunk$set(include = TRUE,
+                      message = FALSE, warning = FALSE, 
+                      fig.align = "center",  out.width = "80%")
+```
+
+```{r library used}
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(ggthemes)
+library(ggrepel)
+library(stringr)
+library(RColorBrewer)
+library(viridis)
+```
+
+```{r datasets}
+country_df = read.csv("../data/country_results_df.csv")
+timeline_df = read.csv("../data/timeline_df.csv")
+individual_results_df = read.csv("../data/individual_results_df.csv")
+```
+
+## Introduction
+
+This study draws upon data from the International Mathematical Olympiad (IMO), widely regarded as the most prestigious mathematics competition for pre-university students globally. The IMO features national teams of six representatives. While representatives compete individually for medals, each country's ranking is determined by their team's combined scores. This structure recognizes both individual excellence and collective achievement. 
+
+Our analysis focuses on two datasets to track changes in national performance over time. Country-level dataset `country_df` provides annual summaries of each country's performance. It includes variables such as team size, scores for each problem, medal counts (gold, silver, bronze, and honorable mentions), as well as contextual information such as team leaders and gender composition. Individual-level dataset `individual_df` captures contestant-specific data, including country affiliation, total score, award received, ranking, and scores for each of the IMO problems.
+
+The overarching research question of this study is to understand the factors that contribute to sustained success at the IMO and to uncover broader insights into the dynamics of mathematical excellence of countries on a global scale. Specifically, the analysis focuses on evaluating the impact of returning contestants on country performance and identifying patterns in problem difficulty. 
+
+## Data cleaning and Visualisations
+
+### Identification of Top 5 Countries across Ten Years (2015-2024)
+
+Our analysis focuses on the period from 2015 to 2024, leveraging two datasets to investigate country-level performance over the past decade. By focusing on this 10-year window, the study balances analytical depth and clarity. Within this time period, the data entries for problem 7 `p7` are all NA, indicating that problem 7 was not present. Therefore, our group removed column `p7` and mutated a new column called `total_score` representing the sum of scores from problem 1 to 6. 
+
+After grouping the data by year, we added a new column `rank` based on each country’s `total_score` for that year. We use the `country_cumulative` score as the key indicator for countries’ performance, to select the top five countries for further analysis: People’s Republic of China(China), United States of America(USA), Republic of Korea(Korea), Singapore and Vietnam.
+
+```{r overall data cleaning}
+country_df = country_df %>% 
+  filter(between(year, 2015,2024))
+
+all_10year_participated = country_df %>% 
+  count(country) %>%
+  filter(n == 10)
+
+country_df %>% filter(!(is.na(p7))) 
+
+country_df = country_df %>% 
+  select(-12) %>% 
+  filter(country %in% all_10year_participated$country) %>%
+  mutate(total_score = rowSums(across(p1:p6))) %>%
+  relocate(total_score, .after = country) %>%
+  group_by(year) %>% 
+  arrange(year, desc(total_score)) %>% 
+  mutate(rank = dense_rank(desc(total_score)), .after = total_score) %>% ungroup()
+
+country_cumulative = country_df %>% group_by(country) %>%
+  summarize(cumulative_score = sum(total_score)) %>%
+  arrange(desc(cumulative_score)) %>%
+  slice_max(cumulative_score, n = 5)
+```
+
+The first plot uses a line graph to illustrate the ranking trends of the top five countries over the ten year period, highlighting how their relative performance at the IMO have changed over time. This type of visualization makes it easy to identify patterns such as consistent top performers, improvements, or declines.
+
+```{r plot1, fig.cap = "Line chart showing IMO rankings (2015–2024) for the top 5 countries. Included to illustrate differences in performance consistency and long-term trends across nations."}
+top_countries = country_df %>% 
+  filter(country %in% country_cumulative$country) %>%
+  mutate(country = case_when(country == "People's Republic of China" ~ "China",
+                             country == "United States of America" ~ "USA",
+                             country == "Republic of Korea" ~ "Korea",
+                             country == "Vietnam" ~ "Vietnam",
+                             country == "Singapore" ~ "Singapore"))
+
+ggplot(top_countries, aes(x = year, y = rank, color = country)) +
+  geom_line(size = 1, show.legend = FALSE) +
+  geom_point(size = 2, show.legend = FALSE) +
+  scale_y_reverse(breaks = seq(1, max(top_countries$rank), by = 1)) + 
+  geom_text(aes(label = country), data = top_countries %>% filter(year == max(year)),
+            hjust = 0, nudge_x = 0.3, show.legend = FALSE, size = 3.5) +
+  scale_x_continuous(breaks = 2015:2024, limits = c(2015, 2025)) +
+  labs(title = "10 Year Performance for Top 5 Countries in IMO (2015-2024)",
+       x = "Year",
+       y = "Rank",
+       color = "Country"
+       ) +
+  theme_clean() +
+  theme(legend.position = "bottom", legend.box = "horizontal",
+        plot.background = element_blank()) +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE)) 
+```
+
+### Exploring the Relationship Between Team Experience and IMO Rankings
+
+After observing the general trend of different participating countries over the 10-year window, we decided to explore the possible factors behind the countries’ relative performance. The first factor that might be relevant is the individual contestants’ experience within each nation. To investigate how contestant experience influences a country's IMO performance, we analysed the relationship between participants' years of IMO experience and their countries' rankings. Using a scatter plot, we plotted each country's average team experience against its ranking. This approach is ideal in showing correlation between two numerical variables, and provides clear visual comparison, where a country's position directly reflects its relative performance. Individual years of experience were calculated, before aggregating to national team averages. The visualisation includes all participating nations to reveal overall trends across the ten years, with the top 5 countries (earlier identified) specially highlighted through color-coding of the points while all other countries in grey. This approach allows us to assess whether consistently fielding experienced representatives is a key strategy for IMO success.
+
+```{r dataset for plot2}
+participant_experience <- individual_results_df %>%
+  filter(year >= 2015, year <= 2024) %>%
+  arrange(contestant, country, year) %>%  
+  group_by(contestant, country) %>%
+  mutate(
+    years_of_experience = row_number(),  
+    years_participated_up_to = paste(year[1:years_of_experience], collapse = ", ")
+  ) %>%
+  ungroup()
+
+country_avg_experience <- participant_experience %>%
+  group_by(country, year) %>% 
+  summarise(
+    yearly_team_avg = mean(years_of_experience, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  group_by(country) %>%  
+  summarise(
+    avg_experience = mean(yearly_team_avg, na.rm = TRUE),
+  )
+
+country_avg_rank <- country_df %>%
+  filter(year >= 2015, year <= 2024) %>%
+  group_by(country) %>%
+  summarise(
+    avg_rank = mean(rank, na.rm = TRUE)
+  )
+```
+
+```{r plot2}
+analysis_df <- country_avg_experience %>%
+  inner_join(country_avg_rank, by = "country") %>%
+  mutate(
+    is_top_country = if_else(country %in% country_cumulative$country, country, "other")
+  )
+
+top_countries_list <- unique(analysis_df$is_top_country[analysis_df$is_top_country != "other"])
+
+top_colors <- setNames(
+  c("dodgerblue3", "firebrick3", "forestgreen", "darkorange2", 
+    "purple3")[1:5],
+  top_countries_list
+)
+
+ggplot(analysis_df, aes(x = avg_experience, y = avg_rank)) +
+  geom_point(
+    data = filter(analysis_df, is_top_country == "other"),
+    color = "gray60", 
+    size = 4, 
+    alpha = 0.4
+  ) +
+  geom_point(
+    data = filter(analysis_df, is_top_country != "other"),
+    aes(color = is_top_country), 
+    size = 4, 
+    alpha = 0.9
+  ) +
+  scale_color_manual(
+    values = top_colors,
+    breaks = top_countries_list,
+    guide = guide_legend(override.aes = list(size = 4))
+  ) +
+  scale_y_reverse() +
+  labs(
+    title = "Team Experience vs Performance (2015-2024)",
+    subtitle = "Colored points represent top-performing countries; gray points show all others for reference",
+    x = "Average Years of Experience",
+    y = "Average Team Rank",
+    color = "Top 5 Countries"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    panel.grid.minor = element_blank(),
+    plot.subtitle = element_text(color = "gray40", size = 10)
+  )
+
+correlation <- cor(analysis_df$avg_experience, analysis_df$avg_rank, use = "complete.obs")
+print(correlation)
+```
+
+### How Problem-Specific Performance Drives Country Rankings
+
+We subsequently investigated another factor, whether performance on specific competition questions serves as a key differentiator between high- and low-ranking countries. The IMO's structure - with six challenging problems administered over two days (three questions daily) - allows for analysis of how question-level performance impacts final rankings. We deduced the relative difficulty from the average scores on each question across 2015-2024. The average scores, ordered from highest to lowest were on P1, P4, P5, P2, and lastly P3 and P6, which led us to believe that problem 1 and 4 are the easiest, and conversely, problem 3 and 6 are the hardest. While total scores across all questions determine individual medals and national rankings, we sought to identify which particular problems most strongly correlate with superior country performance. By analyzing patterns in question-specific achievement, we aim to reveal whether excelling at certain types of mathematical problems consistently distinguishes top-performing nations from their peers. A rough glance at the raw scores of each question by country showed that across the 2015-2024 period, the top 5 countries performed considerably better than the rest of the countries. We thus decided to use a side-by-side bar chart to compare the average score of the top 5 countries for each question with that of the top 6-10 countries. Such an approach aims to ensure a fair and telling comparison since the score differences could be highly skewed should the scores of the less well performed countries be included in the calculation. The average score of top 11-15 countries for each question was also included to examine whether significant score differences between subgroups other than top 5 vs top 6-10 exist.
+
+```{r dataset for plot3}
+avg_scores_qn <- country_df %>%
+  pivot_longer(cols = p1:p6, names_to = "problem", values_to = "score") %>%
+  group_by(problem) %>%
+  summarise(average_score = round(mean(score, na.rm = TRUE), 1)) %>%
+  ungroup() %>%
+  arrange(factor(problem, levels = paste0("p", 1:6)))  
+
+print(avg_scores_qn)
+```
+
+```{r plot3}
+country_df_3 <- country_df %>%
+  pivot_longer(cols = p1:p6, names_to = "problem", values_to = "score") %>%
+  group_by(year) %>%
+  filter(rank <= 15) %>%
+  mutate(
+    group = case_when(
+      rank <= 5 ~ "Top5",
+      rank <= 10 ~ "Top6-10",
+      rank <= 15 ~ "Top11-15"
+    )
+  ) %>%
+  ungroup() %>%
+  group_by(group, problem) %>%
+  summarise(average_score = mean(score, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(problem = factor(problem, levels = paste0("p", 1:6)),
+         group = factor(group, levels = c("Top5", "Top6-10", "Top11-15")))
+
+ggplot(country_df_3, aes(x = problem, y = average_score, fill = group)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(aes(label = round(average_score, 1)),
+            position = position_dodge(width = 0.8),
+            vjust = -0.5, size = 3.5) +
+  scale_fill_manual(
+    values = c("Top5" = "darkslateblue", "Top6-10" = "palevioletred", "Top11-15" = "skyblue3"),
+    name = "Rank Group"
+  ) +
+  labs(
+    title = "Average Problem Scores by Rank Group (2015-2024)",
+    subtitle = "Comparison across all problems",
+    x = "Problem",
+    y = "Average Score"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    legend.title = element_blank(),
+    panel.grid.major.x = element_blank(),
+    axis.text.x = element_text(size = 11),
+    plot.title = element_text(hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5)
+  ) +
+  coord_cartesian(ylim = c(0, 45))
+```
+
+## Results and Discussion 
+
+### Plot 1 - Identifying Consistent Top Performers
+
+To establish a framework for understanding sustained success, we began by identifying the countries that consistently ranked among the top over the past decade (2015–2024). Focusing on these top performers allows us to better examine the factors that may contribute to their success. Plot 1 shows that China, USA, and Korea have consistently dominated the IMO, often placing in the top three each year. In contrast, countries like Singapore and Vietnam showed more variation in their rankings.
+
+
+### Plot 2 - Impact of Experience of Contestants on Country Ranking
+
+Next, we assessed whether a team’s average years of experience influences performance. Plot 2 demonstrates that experience alone has limited explanatory power. Most countries cluster around 1.5 years of average experience, reflecting a common strategy of balancing new and returning participants (typically mixing 1-year newcomers with veterans). But crucially, we observe no clear correlation between experience and rankings. Countries with comparable team experience levels (particularly those clustered around 1.5 average years) achieve divergent rankings. This substantial vertical spread of rankings at common experience levels indicates that contestant experience alone cannot explain competitive success in the IMO. The virtually non-existent correlation (r-value = 0.02) between experience and rankings statistically confirms what the visualization shows graphically. The other factors - whether training quality, selection processes, or mathematical culture - must play decisive roles in determining national performance.This pattern holds even among top performers: China maintains exceptional rankings despite relatively less experienced teams, while teams like the USA and South Korea with more years of experience, achieve comparable or slightly lower rankings. 
+
+
+### Plot 3 - How Problem-Specific Performance Drives Country Rankings
+
+Finally, we examined how performance on specific problems affects rankings. A faceted bar plot reveals that top-performing nations distinguish themselves by excelling on the hardest problems (P3 and P6). When comparing the top 5 countries with those ranked 6-10, the performance gap on difficult problems P3 and P6 is particularly pronounced, at 9.5points for `p3` and 10.3points for `p6`. This is markedly more than the difference observed on the other easier problems (<6 points). This contrast becomes even more revealing when examining the next tier: the performance differential between teams ranked 6-10 and those ranked 11-15 remains consistently small (<4 points) across all problems. This thus confirmed that top 5 countries comparatively performed well on the hardest questions each year, possibly leading to a landslide win, hinting at training and competition strategy of prioritising and maintaining mastery of the most demanding and challenging mathematical challenges. 
+
+
+## Conclusion
+
+Our analysis reveals two key insights: contestant experience demonstrates no significant relationship with national IMO performance, while superior performance on the most difficult problems (P3 and P6) emerges as the primary differentiator for top-ranked countries. These findings provide important strategic guidance for competition preparation. However, we must emphasize that potentially critical factors, in particular, training methodologies, educational backgrounds, and national mathematics programs were not captured in our dataset at all. This represents a fundamental data limitation rather than simply an unexamined aspect of our analysis. Future research would need to first collect this missing data before investigating how these structural factors contribute to the sustained excellence demonstrated by the top-performing countries identified in Plot 1. Such additional research could provide a more complete understanding of the institutional and cultural foundations of mathematical achievement at the highest levels.
+
+
+## Teamwork
+Our group of five collaborated closely across different stages of the project. Hanqi, Jianxiang, and Xinyu began by working on the introduction, data cleaning, and summary, and also developed the first visualization plot to highlight the overall trend in the data.
+Building on this foundation, Nadia created plot 2 with the accompanying discussion analysis, and Yunjin created plot 3 and the accompanying discussion analysis. Once these components were completed, Hanqi, Jianxiang, and Xinyu refined the aesthetics and formatting of the plots to ensure visual consistency and clarity.
+The discussion section benefited from full team collaboration, with all members contributing to achieve coherent narrative flow. In the final stage, Yunjin and Nadia synthesized and edited all components into a unified, polished report. This approach allowed us to leverage individual strengths while maintaining consistency across all sections of the project.
+
+
+## Reference
+International Mathematical Olympiad. (2024). *International Mathematical Olympiad (IMO) data* [Data set]. TidyTuesday. https://github.com/rfordatascience/tidytuesday/blob/main/data/2024/2024-09-24/readme.md
