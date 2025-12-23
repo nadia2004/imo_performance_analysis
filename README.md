@@ -1,10 +1,10 @@
-# International Mathematical Olympiad (IMO) Data Analysis: 2015–2024
+This project analyzes ten years of International Mathematical Olympiad (IMO) data (2015–2024) to identify the key drivers of sustained national performance. Using both country-level and individual-level datasets, the analysis examines trends in team rankings, contestant experience, and problem-specific performance to understand what differentiates consistently top-performing nations.
 
-This project analyzes **10 years of IMO data** to understand factors contributing to sustained national success in the competition. Using country- and individual-level datasets, we examine trends in team performance, contestant experience, and problem-specific scores. The analysis combines **data wrangling, visualization, and statistical insights** to uncover patterns that differentiate top-performing nations.
+## Project Overview
 
-## Background
+The International Mathematical Olympiad (IMO) is the world’s most prestigious mathematics competition for pre-university students. Each country fields a team of six contestants, with national rankings determined by the team’s combined score. While medals are awarded individually, long-term national success depends on collective performance.
 
-The International Mathematical Olympiad (IMO) is the most prestigious global mathematics competition for pre-university students. Each country fields a team of six students, and rankings are based on combined team scores. This project focuses on evaluating **how team experience and problem-specific performance influence country rankings**, with a particular focus on the top-performing countries over the 2015–2024 period.
+This study evaluates whether team experience and problem-specific mastery explain differences in country rankings over time. The results show that average contestant experience has little to no relationship with national performance, whereas strong performance on the most difficult problems (P3 and P6) consistently distinguishes top-ranked countries from the rest. These findings suggest that sustained IMO success is driven less by experience accumulation and more by strategic mastery of high-difficulty problems.
 
 ## Sample Visualizations
 
