@@ -9,13 +9,13 @@ The International Mathematical Olympiad (IMO) is the most prestigious global mat
 ## Sample Visualizations
 
 ### Ranking Trends of Top Countries (2015–2024)
-![Ranking trends of top IMO countries](images/imo_rank_trends.png)
+![Ranking trends of top IMO countries](images/imo-country-rank-trends.png)
 
 ### Team Experience vs Ranking
-![Experience vs ranking scatter plot](images/imo_experience_scatter.png)
+![Experience vs ranking scatter plot](images/country-experience-vs-performance.png)
 
 ### Problem-Specific Performance
-![Problem difficulty comparison](images/imo_problem_difficulty.png)
+![Problem difficulty comparison](images/problem-scores-vs-rank.png)
 
 ## Key Features
 
