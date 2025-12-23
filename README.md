@@ -6,6 +6,17 @@ This project analyzes **10 years of IMO data** to understand factors contributin
 
 The International Mathematical Olympiad (IMO) is the most prestigious global mathematics competition for pre-university students. Each country fields a team of six students, and rankings are based on combined team scores. This project focuses on evaluating **how team experience and problem-specific performance influence country rankings**, with a particular focus on the top-performing countries over the 2015–2024 period.
 
+## Sample Visualizations
+
+### Ranking Trends of Top Countries (2015–2024)
+![Ranking trends of top IMO countries](images/imo_rank_trends.png)
+
+### Team Experience vs Ranking
+![Experience vs ranking scatter plot](images/imo_experience_scatter.png)
+
+### Problem-Specific Performance
+![Problem difficulty comparison](images/imo_problem_difficulty.png)
+
 ## Key Features
 
 - **Data Wrangling & Cleaning:**  
